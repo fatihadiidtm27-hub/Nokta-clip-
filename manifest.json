@@ -1,0 +1,17 @@
+{
+  "name": "NOKTA // CLIP",
+  "short_name": "NOKTA Clip",
+  "description": "Editor video mobile: auto hook, teks bergaya CapCut, analisa momen menarik, subtitle, dan thumbnail editor.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#03040a",
+  "theme_color": "#03040a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
