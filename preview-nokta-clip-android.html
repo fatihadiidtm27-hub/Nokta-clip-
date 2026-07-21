@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>NOKTA // CLIP</title>
+<meta name="description" content="Editor video mobile: auto hook, teks CapCut-style, analisa momen menarik, subtitle, dan thumbnail editor.">
+<meta name="theme-color" content="#03040a">
+<!-- manifest removed for single-file preview -->
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Anton&family=Bebas+Neue&family=Poppins:wght@800;900&family=Permanent+Marker&family=Lilita+One&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#03040a;
+  --panel: rgba(11,16,30,.62);
+  --panel-solid:#0a0e1c;
+  --border: rgba(0,246,255,.16);
+  --cyan:#00f6ff;
+  --cyan-dim:#0a8f9c;
+  --violet:#7c5cff;
+  --magenta:#ff3fa4;
+  --text:#dfe9ff;
+  --muted:#66759c;
+  --dim:#333f60;
+  --glow-cyan: 0 0 20px rgba(0,246,255,.35);
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  background:var(--void); color:var(--text);
+  font-family:'Rajdhani', sans-serif; font-weight:500;
+  overflow:hidden; height:100vh; position:relative;
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+}
+button, input{font-family:inherit;}
+button{cursor:pointer;}
+::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:var(--border);}
+
+.bg-grid{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:linear-gradient(rgba(0,246,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,246,255,.05) 1px, transparent 1px);
+  background-size:34px 34px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 20%, #000 40%, transparent 100%);
+          mask-image:radial-gradient(ellipse 90% 60% at 50% 20%, #000 40%, transparent 100%);
+}
+.bg-glow{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:radial-gradient(500px 380px at 10% -8%, rgba(0,246,255,.10), transparent 60%),
+             radial-gradient(500px 400px at 100% 6%, rgba(124,92,255,.10), transparent 55%);
+}
+.bg-scan{
+  position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.4;
+  background:linear-gradient(rgba(0,246,255,.035) 50%, transparent 50%);
+  background-size:100% 4px; animation:scanmove 9s linear infinite;
+}
+@keyframes scanmove{ from{background-position-y:0;} to{background-position-y:400px;} }
+
+.hud{position:relative;}
+.corner{position:absolute; width:10px; height:10px; pointer-events:none; z-index:3;}
+.corner.tl{top:-1px; left:-1px; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan);}
+.corner.tr{top:-1px; right:-1px; border-top:2px solid var(--cyan); border-right:2px solid var(--cyan);}
+.corner.bl{bottom:-1px; left:-1px; border-bottom:2px solid var(--violet); border-left:2px solid var(--violet);}
+.corner.br{bottom:-1px; right:-1px; border-bottom:2px solid var(--violet); border-right:2px solid var(--violet);}
+
+.app{ position:relative; z-index:2; height:100%; display:flex; flex-direction:column; }
+
+/* ===== Top bar ===== */
+.topbar{
+  height:50px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+  padding:0 12px; background:var(--panel); backdrop-filter:blur(12px); border-bottom:1px solid var(--border);
+}
+.brand{display:flex; align-items:center; gap:9px;}
+.brand-mark{
+  width:24px; height:24px; background:linear-gradient(135deg, var(--cyan), var(--violet));
+  clip-path:polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); box-shadow:var(--glow-cyan);
+}
+.brand-text{font-family:'Orbitron', sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; color:#fff;}
+.brand-text span{color:var(--cyan);}
+.brand-sub{font-family:'JetBrains Mono', monospace; font-size:8.5px; color:var(--muted); letter-spacing:.08em;}
+.glitch{animation:glitchIn 1s ease-out;}
+@keyframes glitchIn{0%{opacity:0; transform:translateX(-6px);} 100%{opacity:1; transform:translateX(0);}}
+.install-btn{
+  font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--cyan);
+  border:1px solid var(--cyan); background:rgba(0,246,255,.06); padding:6px 10px;
+  clip-path:polygon(6px 0,100% 0,100% 100%,0 100%,0 6px);
+}
+
+/* ===== Preview ===== */
+.preview-wrap{ flex-shrink:0; display:flex; flex-direction:column; }
+.viewer{
+  height:34vh; min-height:180px; display:flex; align-items:center; justify-content:center;
+  position:relative; padding:10px; background:#020409;
+}
+.viewer-frame{ position:relative; height:100%; max-width:100%; }
+.viewer-frame video{ display:block; height:100%; max-width:100%; margin:0 auto; background:#000; }
+.overlay-layer{ position:absolute; inset:0; overflow:hidden; }
+.text-overlay{
+  position:absolute; padding:2px 8px; cursor:grab; user-select:none;
+  white-space:nowrap; touch-action:none; transform:translate(-50%,-50%);
+  text-shadow:0 2px 6px rgba(0,0,0,.6);
+}
+.text-overlay.selected{ outline:1.5px dashed var(--cyan); outline-offset:3px; }
+.text-overlay.hook-pop{ animation:hookPop .45s cubic-bezier(.2,1.4,.4,1); }
+@keyframes hookPop{ from{transform:translate(-50%,-50%) scale(1.35); opacity:0;} to{transform:translate(-50%,-50%) scale(1); opacity:1;} }
+.subtitle-overlay{
+  position:absolute; left:50%; bottom:6%; transform:translateX(-50%);
+  max-width:90%; text-align:center; font-family:'Poppins',sans-serif; font-weight:800;
+  font-size:clamp(11px,3.4vw,16px); color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.85);
+  background:rgba(0,0,0,.35); padding:3px 10px; border-radius:4px;
+}
+
+.empty-state{ display:flex; flex-direction:column; align-items:center; gap:10px; color:var(--muted); text-align:center; padding:20px; }
+.empty-state .ring{
+  width:52px; height:52px; display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--border); clip-path:polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); color:var(--cyan);
+}
+.empty-state h2{ font-family:'Orbitron', sans-serif; font-weight:600; font-size:13px; color:var(--text); letter-spacing:.06em; }
+.empty-state p{ font-size:12px; color:var(--muted); }
+.drop-btn{
+  background:rgba(0,246,255,.06); border:1px solid var(--cyan); color:var(--cyan);
+  padding:9px 18px; font-size:12px; font-weight:700; letter-spacing:.03em;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+
+.transport{ height:42px; flex-shrink:0; display:flex; align-items:center; gap:10px; padding:0 12px; border-top:1px solid var(--border); background:var(--panel-solid); }
+.play-btn{
+  width:28px; height:28px; background:rgba(16,22,40,.7); border:1px solid var(--border); color:var(--text);
+  display:flex; align-items:center; justify-content:center;
+  clip-path:polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.play-btn:disabled{ opacity:.3; }
+.tc{ font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--cyan); text-shadow:0 0 10px rgba(0,246,255,.5); }
+.tc .sep{color:var(--dim);} .tc .frac{color:var(--muted); font-size:10px;}
+.transport .btn.small{ margin-left:auto; }
+
+/* ===== Buttons ===== */
+.btn{
+  background:rgba(16,22,40,.7); color:var(--text); border:1px solid var(--border);
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  padding:9px 13px; font-size:12.5px; font-weight:600;
+}
+.btn:hover{ border-color:var(--cyan); }
+.btn:disabled{ opacity:.3; }
+.btn.full{ width:100%; margin-top:8px; }
+.btn.primary{ background:linear-gradient(135deg, rgba(0,246,255,.16), rgba(124,92,255,.16)); border-color:var(--cyan); box-shadow:var(--glow-cyan); }
+.btn.small{ font-size:11px; padding:6px 10px; }
+.btn.tiny{ font-size:10px; padding:5px 8px; }
+
+/* ===== Timeline ===== */
+.timeline-strip{ flex-shrink:0; background:var(--panel-solid); border-top:1px solid var(--border); padding:8px 10px; }
+.track-wrap{ position:relative; height:52px; border:1px solid var(--border); background:rgba(255,255,255,.015); overflow:hidden; }
+.waveform-canvas{ position:absolute; inset:0; width:100%; height:100%; }
+.viral-markers{ position:absolute; inset:0; pointer-events:none; }
+.viral-tick{ position:absolute; top:0; width:2px; height:100%; background:var(--magenta); box-shadow:0 0 6px var(--magenta); opacity:.85; }
+.region-dim{ position:absolute; top:0; bottom:0; background:rgba(2,3,8,.78); pointer-events:none; }
+.region-select{
+  position:absolute; top:0; bottom:0; background:linear-gradient(180deg, rgba(0,246,255,.10), rgba(124,92,255,.10));
+  border-left:2px solid var(--cyan); border-right:2px solid var(--violet);
+}
+.handle{ position:absolute; top:-1px; bottom:-1px; width:20px; display:flex; align-items:center; justify-content:center; z-index:5; touch-action:none; }
+.handle::before{ content:''; width:4px; height:100%; }
+.handle.in::before{ background:var(--cyan); box-shadow:0 0 10px rgba(0,246,255,.8); }
+.handle.out::before{ background:var(--violet); box-shadow:0 0 10px rgba(124,92,255,.8); }
+.handle.in{ left:-10px; } .handle.out{ right:-10px; }
+.playhead{ position:absolute; top:0; bottom:0; width:2px; background:#fff; box-shadow:0 0 8px #fff; z-index:6; pointer-events:none; }
+.timeline-footer{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:7px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); }
+.timeline-footer b{ color:var(--text); }
+.timeline-footer .in-mark b{ color:var(--cyan); } .timeline-footer .out-mark b{ color:var(--violet); }
+.timeline-footer .btn{ margin-left:auto; }
+
+/* ===== Tool panel ===== */
+.tool-panel{ flex:1; min-height:0; overflow-y:auto; background:var(--panel); backdrop-filter:blur(10px); padding:14px 14px 90px; }
+.panel-title{
+  font-family:'Orbitron', sans-serif; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--cyan); font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:7px;
+}
+.hint{ font-size:11.5px; color:var(--muted); line-height:1.6; margin-bottom:10px; }
+
+.chip-row{ display:flex; flex-wrap:wrap; gap:7px; }
+.chip{
+  background:rgba(255,255,255,.03); border:1px solid var(--border); color:var(--text);
+  padding:7px 11px; font-size:11.5px; font-weight:600;
+  clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);
+}
+.chip:hover, .chip.active{ border-color:var(--cyan); color:#fff; background:rgba(0,246,255,.08); }
+.chip.font-chip{ font-size:13px; }
+
+.swatch-row{ display:flex; gap:8px; flex-wrap:wrap; }
+.swatch{ width:26px; height:26px; border:2px solid rgba(255,255,255,.15); }
+.swatch.active{ border-color:#fff; box-shadow:0 0 8px rgba(255,255,255,.4); }
+
+.item-list{ display:flex; flex-direction:column; gap:7px; }
+.empty-note{ font-size:11px; color:var(--dim); font-family:'JetBrains Mono',monospace; padding:10px 4px; text-align:center; }
+.list-item{
+  background:rgba(255,255,255,.02); border:1px solid var(--border); padding:9px 10px;
+  display:flex; align-items:center; gap:9px;
+  clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);
+}
+.list-item .li-main{ flex:1; min-width:0; }
+.list-item .li-title{ font-size:12.5px; color:var(--text); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.list-item .li-sub{ font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:2px; }
+.list-item input[type=text]{
+  background:rgba(0,0,0,.3); border:1px solid var(--border); color:var(--text); font-size:12.5px;
+  padding:6px 8px; width:100%; font-family:'Rajdhani',sans-serif;
+}
+.li-actions{ display:flex; gap:5px; flex-shrink:0; }
+.li-actions button{
+  width:26px; height:26px; background:rgba(255,255,255,.03); border:1px solid var(--border); color:var(--text);
+  font-size:12px; display:flex; align-items:center; justify-content:center;
+}
+.li-actions button:hover{ border-color:var(--cyan); color:var(--cyan); }
+.li-actions button.danger:hover{ border-color:var(--magenta); color:var(--magenta); }
+.score-bar{ height:4px; background:rgba(255,255,255,.06); margin-top:5px; }
+.score-bar-fill{ height:100%; background:linear-gradient(90deg,var(--cyan),var(--magenta)); }
+
+.progress-wrap{ margin-top:10px; display:none; }
+.progress-wrap.active{ display:block; }
+.progress-label{ display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-bottom:5px; font-family:'JetBrains Mono',monospace; }
+.progress-track{ height:6px; background:rgba(255,255,255,.05); border:1px solid var(--border); overflow:hidden; }
+.progress-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--cyan),var(--violet)); transition:width .1s linear; }
+
+.check-row{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text); margin-bottom:8px; }
+
+.export-btn{
+  width:100%; padding:13px; border:none; background:linear-gradient(135deg,var(--cyan),var(--violet));
+  color:#020409; font-weight:700; font-size:13.5px; letter-spacing:.03em;
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);
+  font-family:'Rajdhani',sans-serif;
+}
+.export-btn:disabled{ opacity:.3; }
+
+/* Thumbnail */
+.frame-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px; }
+.frame-grid img{ width:100%; aspect-ratio:16/9; object-fit:cover; border:1px solid var(--border); cursor:pointer; }
+.frame-grid img.selected{ border-color:var(--cyan); box-shadow:0 0 10px rgba(0,246,255,.4); }
+.thumb-canvas-wrap{ margin-top:8px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; background:#000; overflow:hidden; }
+#thumbCanvas{ max-width:100%; display:block; }
+.slider-row{ margin-top:10px; font-size:11px; color:var(--muted); }
+.slider-row label{ display:flex; justify-content:space-between; margin-bottom:4px; }
+.slider-row input[type=range]{ width:100%; accent-color:var(--cyan); }
+
+/* ===== Bottom nav ===== */
+.bottom-nav{
+  position:fixed; left:0; right:0; bottom:0; z-index:10; height:64px;
+  display:flex; background:var(--panel-solid); border-top:1px solid var(--border);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-btn{
+  flex:1; background:none; border:none; color:var(--muted); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:3px; font-size:9.5px; font-weight:600; letter-spacing:.02em;
+}
+.nav-btn svg{ width:19px; height:19px; }
+.nav-btn.active{ color:var(--cyan); }
+.nav-btn.active svg{ filter:drop-shadow(0 0 5px rgba(0,246,255,.6)); }
+
+.viewer.dragover::after{
+  content:'LEPAS FILE VIDEO'; position:absolute; inset:8px; border:1.5px dashed var(--cyan);
+  display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--cyan);
+}
+
+</style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="bg-scan"></div>
+
+  <div class="app">
+
+    <!-- ===== Top bar ===== -->
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div>
+          <div class="brand-text glitch">NOKTA <span>//</span> CLIP</div>
+          <div class="brand-sub" id="statLine">MOBILE EDIT CONSOLE</div>
+        </div>
+      </div>
+      <button class="install-btn" id="btnInstall" hidden>⤓ INSTALL</button>
+    </div>
+
+    <!-- ===== Preview + transport ===== -->
+    <div class="preview-wrap">
+      <div class="viewer" id="viewer">
+        <div class="empty-state hud" id="emptyState">
+          <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+          <div class="ring">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 8.5v7l6-3.5-6-3.5z"/></svg>
+          </div>
+          <h2>NO FEED</h2>
+          <p>Impor video untuk mulai edit.</p>
+          <button class="drop-btn" id="btnImport">PILIH VIDEO</button>
+        </div>
+
+        <div class="viewer-frame hud" id="viewerFrame" hidden>
+          <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+          <video id="video" playsinline></video>
+          <div class="overlay-layer" id="overlayLayer"></div>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button class="play-btn" id="btnPlay" disabled>
+          <svg id="iconPlay" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="iconPause" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+        </button>
+        <div class="tc" id="tcDisplay">00<span class="sep">:</span>00<span class="frac">.00</span></div>
+        <button class="btn small" id="btnImport2">⤒ Ganti Video</button>
+      </div>
+    </div>
+
+    <!-- ===== Timeline ===== -->
+    <div class="timeline-strip hud">
+      <span class="corner tl"></span><span class="corner tr"></span>
+      <div class="track-wrap" id="trackWrap">
+        <canvas class="waveform-canvas" id="waveCanvas"></canvas>
+        <div class="viral-markers" id="viralMarkers"></div>
+        <div class="region-dim" id="dimLeft" style="left:0; width:0;"></div>
+        <div class="region-dim" id="dimRight" style="right:0; width:0;"></div>
+        <div class="region-select" id="regionSelect"></div>
+        <div class="handle in" id="handleIn"></div>
+        <div class="handle out" id="handleOut"></div>
+        <div class="playhead" id="playhead" style="left:0;"></div>
+      </div>
+      <div class="timeline-footer">
+        <span class="in-mark">IN <b id="tfIn">00:00.0</b></span>
+        <span class="out-mark">OUT <b id="tfOut">00:00.0</b></span>
+        <span class="dur-mark">KLIP <b id="tfDur">00:00.0</b></span>
+        <button class="btn tiny" id="btnSetIn" disabled>MARK IN</button>
+        <button class="btn tiny" id="btnSetOut" disabled>MARK OUT</button>
+      </div>
+    </div>
+
+    <!-- ===== Tool panels ===== -->
+    <div class="tool-panel" id="panelHost">
+
+      <!-- HOOK & TEXT -->
+      <section class="panel" data-panel="text">
+        <div class="panel-title">⚡ Auto Hook</div>
+        <div class="hint">Tap salah satu untuk menambah teks hook di 2.5 detik pertama klip.</div>
+        <div class="chip-row" id="hookTemplates"></div>
+
+        <div class="panel-title" style="margin-top:14px;">Aa Teks Bebas</div>
+        <button class="btn full" id="btnAddText">+ Tambah Teks</button>
+
+        <div class="panel-title" style="margin-top:14px;">Font Style</div>
+        <div class="chip-row" id="fontPicker"></div>
+
+        <div class="panel-title" style="margin-top:14px;">Warna</div>
+        <div class="swatch-row" id="colorSwatches"></div>
+
+        <div class="panel-title" style="margin-top:14px;">Daftar Teks Aktif</div>
+        <div class="item-list" id="overlayList"><div class="empty-note">Belum ada teks ditambahkan.</div></div>
+      </section>
+
+      <!-- VIRAL ANALYSIS -->
+      <section class="panel" data-panel="viral" hidden>
+        <div class="panel-title">📈 Analisa Momen Menarik</div>
+        <div class="hint">Heuristik gabungan: puncak volume audio + perubahan gerakan visual + kata kunci hook (jika subtitle sudah diisi). Bukan prediksi viral AI — ini estimasi teknis.</div>
+        <button class="btn full primary" id="btnAnalyze">MULAI ANALISIS</button>
+        <div class="progress-wrap" id="viralProgress">
+          <div class="progress-label"><span id="viralStage">Menganalisis…</span><span id="viralPct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="viralFill"></div></div>
+        </div>
+        <div class="panel-title" style="margin-top:14px;">Momen Teratas</div>
+        <div class="item-list" id="viralList"><div class="empty-note">Jalankan analisis untuk melihat momen menarik.</div></div>
+      </section>
+
+      <!-- SUBTITLE -->
+      <section class="panel" data-panel="subtitle" hidden>
+        <div class="panel-title">💬 Subtitle Otomatis</div>
+        <div class="hint">Auto-timing membaca jeda hening untuk membuat slot waktu subtitle. Isi teksnya secara manual, atau coba pengenalan suara (eksperimental, butuh mic + speaker, akurasi terbatas).</div>
+        <button class="btn full primary" id="btnAutoTiming">AUTO-TIMING DARI JEDA HENING</button>
+        <button class="btn full" id="btnVoiceRec" style="margin-top:8px;">🎙 COBA PENGENALAN SUARA (EKSPERIMENTAL)</button>
+        <div class="hint" id="voiceStatus" style="display:none;"></div>
+        <div class="panel-title" style="margin-top:14px;">Segmen Subtitle</div>
+        <div class="item-list" id="subtitleList"><div class="empty-note">Belum ada segmen. Jalankan auto-timing dulu.</div></div>
+      </section>
+
+      <!-- THUMBNAIL -->
+      <section class="panel" data-panel="thumb" hidden>
+        <div class="panel-title">🖼 Thumbnail Editor</div>
+        <div class="hint">Ambil beberapa frame dari klip, pilih satu sebagai dasar thumbnail, lalu tambahkan teks dan atur rasio.</div>
+        <button class="btn full primary" id="btnGrabFrames">AMBIL FRAME</button>
+        <div class="frame-grid" id="frameGrid"></div>
+
+        <div id="thumbEditor" hidden>
+          <div class="panel-title" style="margin-top:14px;">Editor</div>
+          <div class="thumb-canvas-wrap">
+            <canvas id="thumbCanvas"></canvas>
+          </div>
+          <div class="chip-row" id="thumbRatios">
+            <button class="chip" data-ratio="9:16">9:16</button>
+            <button class="chip" data-ratio="1:1">1:1</button>
+            <button class="chip" data-ratio="16:9">16:9</button>
+            <button class="chip active" data-ratio="orig">Asli</button>
+          </div>
+          <button class="btn full" id="btnThumbAddText">+ Tambah Teks Thumbnail</button>
+          <div class="slider-row">
+            <label>Brightness <span id="briVal">100%</span></label>
+            <input type="range" id="briSlider" min="50" max="150" value="100">
+          </div>
+          <div class="slider-row">
+            <label>Contrast <span id="conVal">100%</span></label>
+            <input type="range" id="conSlider" min="50" max="150" value="100">
+          </div>
+          <button class="btn full primary" id="btnThumbExport">⬇ UNDUH THUMBNAIL (.png)</button>
+        </div>
+      </section>
+
+      <!-- EXPORT -->
+      <section class="panel" data-panel="export" hidden>
+        <div class="panel-title">⬇ Render & Ekspor</div>
+        <label class="check-row"><input type="checkbox" id="chkBurnText" checked> Sertakan teks / hook</label>
+        <label class="check-row"><input type="checkbox" id="chkBurnSub" checked> Sertakan subtitle</label>
+        <button class="export-btn" id="btnExport" disabled>⬇ RENDER KLIP (.webm)</button>
+        <div class="progress-wrap" id="exportProgress">
+          <div class="progress-label"><span>RENDERING…</span><span id="exportPct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="exportFill"></div></div>
+        </div>
+        <div class="panel-title" style="margin-top:14px;">Output Log</div>
+        <div class="item-list" id="clipList"><div class="empty-note">// klip yang dirender akan tercatat di sini</div></div>
+      </section>
+
+    </div>
+
+    <!-- ===== Bottom nav ===== -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="text">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 7h14M5 12h9M5 17h6"/></svg>
+        <span>Teks</span>
+      </button>
+      <button class="nav-btn" data-tab="viral">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19l5-6 4 4 7-9"/></svg>
+        <span>Viral</span>
+      </button>
+      <button class="nav-btn" data-tab="subtitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h4M7 14h7"/></svg>
+        <span>Subtitle</span>
+      </button>
+      <button class="nav-btn" data-tab="thumb">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
+        <span>Thumbnail</span>
+      </button>
+      <button class="nav-btn" data-tab="export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+        <span>Ekspor</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <input type="file" id="fileInput" accept="video/*" hidden>
+
+<script>
+// ============================================================
+// NOKTA CLIP — AUTH GATE (verifikasi lisensi via Gumroad API)
+// ------------------------------------------------------------
+// WAJIB DIISI: ganti nilai di bawah dengan "Product Permalink"
+// produkmu di Gumroad (Settings produk → Permalink).
+// Contoh: kalau link produkmu https://gum.co/nokta-clip
+// maka permalinknya adalah: 'nokta-clip'
+// ============================================================
+const GUMROAD_PRODUCT_PERMALINK = 'GANTI_DENGAN_PERMALINK_PRODUK';
+
+(() => {
+  const STORAGE_KEY = 'nokta_license_key';
+
+  const gate = document.createElement('div');
+  gate.id = 'authGate';
+  gate.innerHTML = `
+    <div class="gate-box">
+      <div class="gate-mark"></div>
+      <h1>NOKTA // CLIP</h1>
+      <p>Masukkan kode lisensi yang kamu terima setelah pembelian untuk membuka akses.</p>
+      <input type="text" id="gateInput" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button id="gateSubmit">BUKA AKSES</button>
+      <div id="gateStatus"></div>
+      <a href="https://gumroad.com" target="_blank" rel="noopener" id="gateBuyLink">Belum punya kode? Beli di sini</a>
+    </div>
+  `;
+  document.body.appendChild(gate);
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #authGate{position:fixed;inset:0;z-index:99999;background:#03040a;display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Rajdhani',sans-serif;}
+    #authGate .gate-box{max-width:340px;width:100%;text-align:center;}
+    #authGate .gate-mark{width:44px;height:44px;margin:0 auto 16px;background:linear-gradient(135deg,#00f6ff,#7c5cff);clip-path:polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);box-shadow:0 0 22px rgba(0,246,255,.4);}
+    #authGate h1{font-family:'Orbitron',sans-serif;color:#fff;font-size:18px;letter-spacing:.1em;margin-bottom:10px;}
+    #authGate p{color:#8291b3;font-size:13px;margin-bottom:18px;line-height:1.5;}
+    #authGate input{width:100%;background:#0a0e1c;border:1px solid rgba(0,246,255,.25);color:#dfe9ff;padding:12px;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;margin-bottom:12px;box-sizing:border-box;}
+    #authGate button{width:100%;padding:13px;border:none;background:linear-gradient(135deg,#00f6ff,#7c5cff);color:#020409;font-weight:700;font-size:13px;letter-spacing:.03em;cursor:pointer;}
+    #authGate button:disabled{opacity:.5;}
+    #authGate #gateStatus{margin-top:12px;font-size:11.5px;color:#ff3fa4;min-height:16px;}
+    #authGate #gateBuyLink{display:inline-block;margin-top:14px;font-size:11px;color:#66759c;text-decoration:underline;}
+  `;
+  document.head.appendChild(style);
+
+  const input = gate.querySelector('#gateInput');
+  const btn = gate.querySelector('#gateSubmit');
+  const statusEl = gate.querySelector('#gateStatus');
+
+  function unlock(){
+    gate.remove();
+  }
+
+  function saveKey(key){
+    try{ window.__noktaMemStore = key; }catch(e){}
+  }
+  function loadSavedKey(){
+    try{ return window.__noktaMemStore || null; }catch(e){ return null; }
+  }
+
+  async function verify(key, silent){
+    if(!silent){ btn.disabled = true; statusEl.style.color = '#8291b3'; statusEl.textContent = 'Memeriksa kode…'; }
+    try{
+      const res = await fetch('https://api.gumroad.com/v2/licenses/verify', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({
+          product_permalink: GUMROAD_PRODUCT_PERMALINK,
+          license_key: key,
+          increment_uses_count: silent ? 'false' : 'true'
+        })
+      });
+      const data = await res.json();
+      if(data.success){
+        saveKey(key);
+        unlock();
+      } else if(!silent){
+        statusEl.style.color = '#ff3fa4';
+        statusEl.textContent = 'Kode tidak valid. Cek kembali kode lisensimu.';
+        btn.disabled = false;
+      }
+    }catch(err){
+      if(!silent){
+        statusEl.style.color = '#ff3fa4';
+        statusEl.textContent = 'Gagal memeriksa kode. Cek koneksi internet.';
+        btn.disabled = false;
+      }
+    }
+  }
+
+  btn.addEventListener('click', () => {
+    const key = input.value.trim();
+    if(!key){ statusEl.style.color = '#ff3fa4'; statusEl.textContent = 'Masukkan kode lisensi dulu.'; return; }
+    verify(key, false);
+  });
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') btn.click(); });
+
+  // Kalau kode sudah pernah diverifikasi di perangkat ini, langsung buka tanpa nge-hit uses count lagi
+  const saved = loadSavedKey();
+  if(saved){ verify(saved, true); }
+})();
+
+</script>
+<script>
+// ============ Shared namespace ============
+window.NOKTA = {
+  video: null,
+  duration: 0,
+  inPoint: 0,
+  outPoint: 0,
+  currentFile: null,
+  audioBuffer: null,       // decoded once, reused by waveform + viral analysis
+  timeUpdateHooks: [],     // fn(currentTime) — called on every timeupdate, for overlay/subtitle preview sync
+  overlayRenderers: [],    // fn(ctx, w, h, t) — called during export to burn in text/hook
+  subtitleRenderers: [],   // fn(ctx, w, h, t) — called during export to burn in subtitle
+  fmt(t){
+    if(!isFinite(t) || t < 0) t = 0;
+    const m = Math.floor(t/60), s = Math.floor(t%60), cs = Math.floor((t-Math.floor(t))*100);
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(cs).padStart(2,'0')}`;
+  },
+  fmtShort(t){
+    if(!isFinite(t) || t < 0) t = 0;
+    const m = Math.floor(t/60), s = Math.floor(t%60);
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+};
+
+(() => {
+  const N = window.NOKTA;
+  const video = document.getElementById('video');
+  N.video = video;
+
+  const viewer = document.getElementById('viewer');
+  const viewerFrame = document.getElementById('viewerFrame');
+  const emptyState = document.getElementById('emptyState');
+  const fileInput = document.getElementById('fileInput');
+  const btnImport = document.getElementById('btnImport');
+  const btnImport2 = document.getElementById('btnImport2');
+  const btnPlay = document.getElementById('btnPlay');
+  const iconPlay = document.getElementById('iconPlay');
+  const iconPause = document.getElementById('iconPause');
+  const btnSetIn = document.getElementById('btnSetIn');
+  const btnSetOut = document.getElementById('btnSetOut');
+  const trackWrap = document.getElementById('trackWrap');
+  const regionSelect = document.getElementById('regionSelect');
+  const dimLeft = document.getElementById('dimLeft');
+  const dimRight = document.getElementById('dimRight');
+  const handleIn = document.getElementById('handleIn');
+  const handleOut = document.getElementById('handleOut');
+  const playhead = document.getElementById('playhead');
+  const waveCanvas = document.getElementById('waveCanvas');
+  const tcDisplay = document.getElementById('tcDisplay');
+  const tfIn = document.getElementById('tfIn');
+  const tfOut = document.getElementById('tfOut');
+  const tfDur = document.getElementById('tfDur');
+  const statLine = document.getElementById('statLine');
+
+  let dragTarget = null;
+  let isPlaying = false;
+  let loopEnabled = true;
+
+  // ---------- Import ----------
+  function triggerImport(){ fileInput.click(); }
+  btnImport.addEventListener('click', triggerImport);
+  btnImport2.addEventListener('click', triggerImport);
+  fileInput.addEventListener('change', e => { if(e.target.files[0]) loadFile(e.target.files[0]); });
+
+  viewer.addEventListener('dragover', e => { e.preventDefault(); viewer.classList.add('dragover'); });
+  viewer.addEventListener('dragleave', () => viewer.classList.remove('dragover'));
+  viewer.addEventListener('drop', e => {
+    e.preventDefault(); viewer.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if(f && f.type.startsWith('video/')) loadFile(f);
+  });
+
+  function loadFile(file){
+    N.currentFile = file;
+    N.audioBuffer = null;
+    video.src = URL.createObjectURL(file);
+    viewerFrame.hidden = false;
+    emptyState.style.display = 'none';
+    statLine.textContent = file.name.toUpperCase();
+    [btnSetIn, btnSetOut, btnPlay].forEach(b => b.disabled = false);
+    document.dispatchEvent(new CustomEvent('nokta:fileloaded', {detail:{file}}));
+    decodeAudio(file);
+    drawWaveformPlaceholder();
+  }
+
+  video.addEventListener('loadedmetadata', () => {
+    N.duration = video.duration;
+    N.inPoint = 0;
+    N.outPoint = N.duration;
+    tfIn.textContent = N.fmt(0);
+    tfOut.textContent = N.fmt(N.duration);
+    tfDur.textContent = N.fmt(N.duration);
+    updateRegionUI();
+    document.dispatchEvent(new CustomEvent('nokta:metadata', {detail:{duration:N.duration, width:video.videoWidth, height:video.videoHeight}}));
+  });
+
+  // ---------- Playback ----------
+  function setPlaying(p){
+    isPlaying = p;
+    iconPlay.style.display = p ? 'none' : 'block';
+    iconPause.style.display = p ? 'block' : 'none';
+  }
+  btnPlay.addEventListener('click', () => {
+    if(video.paused){
+      if(video.currentTime >= N.outPoint - 0.02 || video.currentTime < N.inPoint) video.currentTime = N.inPoint;
+      video.play(); setPlaying(true);
+    } else { video.pause(); setPlaying(false); }
+  });
+  video.addEventListener('pause', () => setPlaying(false));
+  video.addEventListener('play', () => setPlaying(true));
+
+  video.addEventListener('timeupdate', () => {
+    if(loopEnabled && video.currentTime >= N.outPoint){
+      video.currentTime = N.inPoint;
+      if(isPlaying) video.play();
+    }
+    updatePlayheadUI();
+    updateTimecode();
+    N.timeUpdateHooks.forEach(fn => { try{ fn(video.currentTime); }catch(e){} });
+  });
+
+  document.addEventListener('keydown', e => {
+    if(!video.src || e.target.tagName === 'INPUT') return;
+    if(e.code === 'Space'){ e.preventDefault(); btnPlay.click(); }
+  });
+
+  function setIn(){ N.inPoint = Math.min(video.currentTime, N.outPoint - 0.1); N.inPoint = Math.max(0, N.inPoint); afterTrimChange(); }
+  function setOut(){ N.outPoint = Math.max(video.currentTime, N.inPoint + 0.1); N.outPoint = Math.min(N.duration, N.outPoint); afterTrimChange(); }
+  btnSetIn.addEventListener('click', setIn);
+  btnSetOut.addEventListener('click', setOut);
+
+  function afterTrimChange(){ updateRegionUI(); tfIn.textContent = N.fmt(N.inPoint); tfOut.textContent = N.fmt(N.outPoint); tfDur.textContent = N.fmt(N.outPoint-N.inPoint); }
+
+  // ---------- Timeline drag ----------
+  function pctFromEvent(e){
+    const rect = trackWrap.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const x = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+    return x / rect.width;
+  }
+  handleIn.addEventListener('pointerdown', e => { e.stopPropagation(); dragTarget='in'; });
+  handleOut.addEventListener('pointerdown', e => { e.stopPropagation(); dragTarget='out'; });
+  window.addEventListener('pointermove', e => {
+    if(!dragTarget || !N.duration) return;
+    const t = pctFromEvent(e) * N.duration;
+    if(dragTarget === 'in'){ N.inPoint = Math.min(Math.max(0,t), N.outPoint-0.1); video.currentTime = N.inPoint; }
+    else { N.outPoint = Math.max(Math.min(N.duration,t), N.inPoint+0.1); video.currentTime = N.outPoint; }
+    afterTrimChange();
+  });
+  window.addEventListener('pointerup', () => dragTarget = null);
+  trackWrap.addEventListener('pointerdown', e => {
+    if(e.target === handleIn || e.target === handleOut) return;
+    if(!N.duration) return;
+    video.currentTime = pctFromEvent(e) * N.duration;
+  });
+
+  function updateRegionUI(){
+    if(!N.duration) return;
+    const l = (N.inPoint/N.duration)*100, r = (N.outPoint/N.duration)*100;
+    regionSelect.style.left = l+'%'; regionSelect.style.width = (r-l)+'%';
+    handleIn.style.left = `calc(${l}% - 10px)`; handleOut.style.left = `calc(${r}% - 10px)`;
+    dimLeft.style.width = l+'%'; dimRight.style.width = (100-r)+'%';
+  }
+  function updatePlayheadUI(){ if(!N.duration) return; playhead.style.left = (video.currentTime/N.duration*100)+'%'; }
+  function updateTimecode(){
+    const t = video.currentTime; const m = Math.floor(t/60), s=Math.floor(t%60), cs=Math.floor((t-Math.floor(t))*100);
+    tcDisplay.innerHTML = `${String(m).padStart(2,'0')}<span class="sep">:</span>${String(s).padStart(2,'0')}<span class="frac">.${String(cs).padStart(2,'0')}</span>`;
+  }
+
+  // ---------- Audio decode (shared) ----------
+  async function decodeAudio(file){
+    try{
+      const buf = await file.arrayBuffer();
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const actx = new AC();
+      N.audioBuffer = await actx.decodeAudioData(buf.slice(0));
+      actx.close();
+      drawWaveformFromBuffer();
+      document.dispatchEvent(new CustomEvent('nokta:audioready'));
+    }catch(err){
+      console.warn('Audio decode gagal (mungkin video tanpa audio track):', err);
+    }
+  }
+
+  // ---------- Waveform ----------
+  function resizeCanvas(){
+    const dpr = window.devicePixelRatio || 1;
+    waveCanvas.width = trackWrap.clientWidth * dpr;
+    waveCanvas.height = trackWrap.clientHeight * dpr;
+    return dpr;
+  }
+  function drawWaveformPlaceholder(){
+    const ctx = waveCanvas.getContext('2d');
+    const dpr = resizeCanvas();
+    const w = waveCanvas.width, h = waveCanvas.height, mid = h/2;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = 'rgba(0,246,255,0.15)';
+    const bars = 100, barW = w/bars;
+    for(let i=0;i<bars;i++){
+      const barH = (0.15 + Math.abs(Math.sin(i*0.4))*0.35)*h;
+      ctx.fillRect(i*barW, mid-barH/2, Math.max(1,barW-1*dpr), barH);
+    }
+  }
+  function drawWaveformFromBuffer(){
+    if(!N.audioBuffer) return;
+    const ctx = waveCanvas.getContext('2d');
+    const dpr = resizeCanvas();
+    const w = waveCanvas.width, h = waveCanvas.height, mid = h/2;
+    const raw = N.audioBuffer.getChannelData(0);
+    const width = trackWrap.clientWidth;
+    const spp = Math.max(1, Math.floor(raw.length/width));
+    const peaks = [];
+    for(let i=0;i<width;i++){
+      let max=0; const start=i*spp;
+      for(let j=0;j<spp;j+=4){ const v=Math.abs(raw[start+j]||0); if(v>max)max=v; }
+      peaks.push(max);
+    }
+    ctx.clearRect(0,0,w,h);
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'rgba(0,246,255,0.9)'); grad.addColorStop(1,'rgba(124,92,255,0.6)');
+    ctx.fillStyle = grad;
+    const barW = w/peaks.length;
+    peaks.forEach((p,i) => { const barH=Math.max(2*dpr,p*h*0.9); ctx.fillRect(i*barW, mid-barH/2, Math.max(1,barW-1*dpr), barH); });
+  }
+  window.addEventListener('resize', () => { N.audioBuffer ? drawWaveformFromBuffer() : (N.currentFile && drawWaveformPlaceholder()); });
+
+  // ---------- Export (canvas compositor: burns in overlays + subtitles) ----------
+  const btnExport = document.getElementById('btnExport');
+  const exportProgress = document.getElementById('exportProgress');
+  const exportFill = document.getElementById('exportFill');
+  const exportPct = document.getElementById('exportPct');
+  const clipList = document.getElementById('clipList');
+  const chkBurnText = document.getElementById('chkBurnText');
+  const chkBurnSub = document.getElementById('chkBurnSub');
+
+  document.addEventListener('nokta:canexport', () => { btnExport.disabled = false; });
+
+  let clipCount = 0;
+  btnExport.addEventListener('click', async () => {
+    if(!video.src || N.outPoint - N.inPoint <= 0) return;
+    btnExport.disabled = true;
+    exportProgress.classList.add('active');
+    exportFill.style.width='0%'; exportPct.textContent='0%';
+
+    const wasPlaying = !video.paused;
+    video.pause();
+    loopEnabled = false;
+    video.currentTime = N.inPoint;
+    await new Promise(res => { video.onseeked = res; });
+
+    const w = video.videoWidth, h = video.videoHeight;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    let canvasStream;
+    try{ canvasStream = canvas.captureStream(30); }
+    catch(err){ alert('Browser tidak mendukung ekspor. Gunakan Chrome/Edge terbaru.'); resetExportUI(); return; }
+
+    let audioTracks = [];
+    try{
+      const vidStream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
+      audioTracks = vidStream.getAudioTracks();
+    }catch(err){ /* no audio available */ }
+
+    const finalStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
+
+    let mimeType = 'video/webm;codecs=vp9,opus';
+    if(!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8,opus';
+    if(!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+    const recorder = new MediaRecorder(finalStream, {mimeType, videoBitsPerSecond:6_000_000});
+    const chunks = [];
+    recorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+
+    const clipDuration = N.outPoint - N.inPoint;
+    let rafId;
+
+    function drawFrame(){
+      ctx.drawImage(video, 0, 0, w, h);
+      const t = video.currentTime;
+      if(chkBurnText.checked) N.overlayRenderers.forEach(fn => { try{ fn(ctx, w, h, t); }catch(e){} });
+      if(chkBurnSub.checked) N.subtitleRenderers.forEach(fn => { try{ fn(ctx, w, h, t); }catch(e){} });
+      const elapsed = t - N.inPoint;
+      const pct = Math.min(100, Math.round((elapsed/clipDuration)*100));
+      exportFill.style.width = pct+'%'; exportPct.textContent = pct+'%';
+      if(t < N.outPoint - 0.03){ rafId = requestAnimationFrame(drawFrame); }
+      else { recorder.stop(); video.pause(); }
+    }
+
+    recorder.onstop = () => {
+      cancelAnimationFrame(rafId);
+      exportFill.style.width='100%'; exportPct.textContent='100%';
+      const blob = new Blob(chunks, {type:'video/webm'});
+      const url = URL.createObjectURL(blob);
+      addClipEntry(url, clipDuration);
+      setTimeout(resetExportUI, 400);
+      loopEnabled = true;
+      if(wasPlaying) video.play();
+    };
+
+    recorder.start();
+    video.play();
+    rafId = requestAnimationFrame(drawFrame);
+  });
+
+  function resetExportUI(){ btnExport.disabled = false; exportProgress.classList.remove('active'); }
+
+  function addClipEntry(url, len){
+    clipCount++;
+    const emptyMsg = clipList.querySelector('.empty-note');
+    if(emptyMsg) emptyMsg.remove();
+    const item = document.createElement('div');
+    item.className = 'list-item';
+    const base = (N.currentFile ? N.currentFile.name.replace(/\.[^/.]+$/,'') : 'klip').replace(/[^a-z0-9]+/gi,'_');
+    item.innerHTML = `
+      <div class="li-main">
+        <div class="li-title">${base}_CLIP${clipCount}.webm</div>
+        <div class="li-sub">${N.fmt(len)}</div>
+      </div>
+      <div class="li-actions"><a href="${url}" download="${base}_CLIP${clipCount}.webm" style="color:var(--cyan); text-decoration:none; font-size:11px; padding:4px;">↓</a></div>
+    `;
+    clipList.prepend(item);
+  }
+
+  // expose a few helpers other modules need
+  N.getVideoEl = () => video;
+})();
+
+</script>
+<script>
+(() => {
+  const N = window.NOKTA;
+  const overlayLayer = document.getElementById('overlayLayer');
+  const hookTemplatesEl = document.getElementById('hookTemplates');
+  const fontPickerEl = document.getElementById('fontPicker');
+  const colorSwatchesEl = document.getElementById('colorSwatches');
+  const overlayListEl = document.getElementById('overlayList');
+  const btnAddText = document.getElementById('btnAddText');
+
+  const HOOK_TEMPLATES = [
+    'TUNGGU SAMPAI AKHIR!','KAMU GAK BAKAL NYANGKA...','INI BARU KEBONGKAR!',
+    'STOP SCROLL DULU!','RAHASIA YANG JARANG DIKETAHUI','GILA, BARU TAU!',
+    'JANGAN SKIP, PENTING!','TERNYATA SELAMA INI SALAH','PART 1 — SIMPEN DULU!',
+    'INI KENAPA VIRAL BANGET'
+  ];
+
+  const FONTS = [
+    {key:'anton', label:'Anton', family:"'Anton', sans-serif", weight:'400'},
+    {key:'bebas', label:'Bebas Neue', family:"'Bebas Neue', sans-serif", weight:'400'},
+    {key:'poppins', label:'Poppins Black', family:"'Poppins', sans-serif", weight:'900'},
+    {key:'marker', label:'Permanent Marker', family:"'Permanent Marker', cursive", weight:'400'},
+    {key:'lilita', label:'Lilita One', family:"'Lilita One', sans-serif", weight:'400'},
+    {key:'archivo', label:'Archivo Black', family:"'Archivo Black', sans-serif", weight:'400'},
+  ];
+  const COLORS = ['#ffffff','#00f6ff','#7c5cff','#ff3fa4','#ffe14d','#28ff9a'];
+
+  let overlays = [];       // {id, text, xPct, yPct, fontKey, color, sizeRatio, start, end, isHook}
+  let idSeq = 1;
+  let selectedFontKey = 'anton';
+  let selectedColor = '#ffffff';
+  let dragId = null;
+
+  function fontByKey(key){ return FONTS.find(f => f.key===key) || FONTS[0]; }
+
+  // ---------- Build pickers ----------
+  FONTS.forEach(f => {
+    const chip = document.createElement('button');
+    chip.className = 'chip font-chip' + (f.key===selectedFontKey ? ' active':'');
+    chip.style.fontFamily = f.family;
+    chip.style.fontWeight = f.weight;
+    chip.textContent = f.label;
+    chip.addEventListener('click', () => {
+      selectedFontKey = f.key;
+      [...fontPickerEl.children].forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      if(selectedOverlayId){ updateOverlay(selectedOverlayId, {fontKey:f.key}); }
+    });
+    fontPickerEl.appendChild(chip);
+  });
+
+  COLORS.forEach(c => {
+    const sw = document.createElement('button');
+    sw.className = 'swatch' + (c===selectedColor ? ' active':'');
+    sw.style.background = c;
+    sw.addEventListener('click', () => {
+      selectedColor = c;
+      [...colorSwatchesEl.children].forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      if(selectedOverlayId){ updateOverlay(selectedOverlayId, {color:c}); }
+    });
+    colorSwatchesEl.appendChild(sw);
+  });
+
+  HOOK_TEMPLATES.forEach(txt => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.textContent = txt;
+    chip.addEventListener('click', () => addHook(txt));
+    hookTemplatesEl.appendChild(chip);
+  });
+
+  let selectedOverlayId = null;
+
+  // ---------- CRUD ----------
+  function addHook(text){
+    const ov = {
+      id: idSeq++, text, xPct:50, yPct:22,
+      fontKey: selectedFontKey, color: selectedColor, sizeRatio:0.09,
+      start:0, end:2.5, isHook:true
+    };
+    overlays.push(ov);
+    renderOverlayDom(ov, true);
+    renderList();
+  }
+
+  btnAddText.addEventListener('click', () => {
+    const video = N.getVideoEl();
+    const t = video.currentTime || 0;
+    const ov = {
+      id: idSeq++, text:'Teks Baru', xPct:50, yPct:50,
+      fontKey: selectedFontKey, color: selectedColor, sizeRatio:0.07,
+      start:t, end: Math.min(t+3, N.duration||t+3), isHook:false
+    };
+    overlays.push(ov);
+    renderOverlayDom(ov, false);
+    renderList();
+  });
+
+  function updateOverlay(id, patch){
+    const ov = overlays.find(o=>o.id===id);
+    if(!ov) return;
+    Object.assign(ov, patch);
+    const el = overlayLayer.querySelector(`[data-id="${id}"]`);
+    if(el) styleOverlayEl(el, ov);
+    renderList();
+  }
+
+  function deleteOverlay(id){
+    overlays = overlays.filter(o=>o.id!==id);
+    const el = overlayLayer.querySelector(`[data-id="${id}"]`);
+    if(el) el.remove();
+    renderList();
+  }
+
+  function styleOverlayEl(el, ov){
+    const f = fontByKey(ov.fontKey);
+    el.style.left = ov.xPct + '%';
+    el.style.top = ov.yPct + '%';
+    el.style.fontFamily = f.family;
+    el.style.fontWeight = f.weight;
+    el.style.color = ov.color;
+    el.style.fontSize = (ov.sizeRatio*100) + 'cqh'; // fallback handled below
+    el.style.fontSize = Math.round(ov.sizeRatio * overlayLayer.clientHeight) + 'px';
+    el.textContent = ov.text;
+  }
+
+  function renderOverlayDom(ov, pop){
+    const el = document.createElement('div');
+    el.className = 'text-overlay' + (pop ? ' hook-pop':'');
+    el.dataset.id = ov.id;
+    styleOverlayEl(el, ov);
+    el.addEventListener('pointerdown', e => {
+      e.stopPropagation(); dragId = ov.id; selectedOverlayId = ov.id;
+      overlayLayer.querySelectorAll('.text-overlay').forEach(x=>x.classList.remove('selected'));
+      el.classList.add('selected');
+    });
+    el.addEventListener('dblclick', () => {
+      const nv = prompt('Edit teks:', ov.text);
+      if(nv !== null && nv.trim()!==''){ updateOverlay(ov.id, {text:nv}); }
+    });
+    overlayLayer.appendChild(el);
+  }
+
+  window.addEventListener('pointermove', e => {
+    if(!dragId) return;
+    const rect = overlayLayer.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const xPct = Math.min(100, Math.max(0, ((clientX-rect.left)/rect.width)*100));
+    const yPct = Math.min(100, Math.max(0, ((clientY-rect.top)/rect.height)*100));
+    updateOverlay(dragId, {xPct, yPct});
+  });
+  window.addEventListener('pointerup', () => dragId = null);
+
+  // ---------- List panel ----------
+  function renderList(){
+    overlayListEl.innerHTML = '';
+    if(overlays.length===0){
+      overlayListEl.innerHTML = '<div class="empty-note">Belum ada teks ditambahkan.</div>';
+      return;
+    }
+    overlays.forEach(ov => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      row.innerHTML = `
+        <div class="li-main">
+          <input type="text" value="${ov.text.replace(/"/g,'&quot;')}" />
+          <div class="li-sub">${ov.isHook ? 'HOOK' : 'TEKS'} · ${N.fmtShort(ov.start)}–${N.fmtShort(ov.end)}</div>
+        </div>
+        <div class="li-actions">
+          <button data-act="now-start" title="Set mulai = sekarang">⏵</button>
+          <button data-act="now-end" title="Set akhir = sekarang">⏸</button>
+          <button data-act="del" class="danger" title="Hapus">✕</button>
+        </div>
+      `;
+      row.querySelector('input').addEventListener('input', e => updateOverlay(ov.id, {text:e.target.value}));
+      row.querySelector('[data-act="now-start"]').addEventListener('click', () => updateOverlay(ov.id, {start:N.getVideoEl().currentTime}));
+      row.querySelector('[data-act="now-end"]').addEventListener('click', () => updateOverlay(ov.id, {end:N.getVideoEl().currentTime}));
+      row.querySelector('[data-act="del"]').addEventListener('click', () => deleteOverlay(ov.id));
+      overlayListEl.appendChild(row);
+    });
+  }
+
+  // ---------- Visibility sync during playback ----------
+  N.timeUpdateHooks.push((t) => {
+    overlayLayer.querySelectorAll('.text-overlay').forEach(el => {
+      const ov = overlays.find(o=>o.id==el.dataset.id);
+      if(!ov) return;
+      el.style.display = (t>=ov.start && t<=ov.end) ? 'block' : 'none';
+    });
+  });
+
+  // ---------- Burn-in renderer for export ----------
+  N.overlayRenderers.push((ctx, w, h, t) => {
+    overlays.forEach(ov => {
+      if(t < ov.start || t > ov.end) return;
+      const f = fontByKey(ov.fontKey);
+      let size = ov.sizeRatio * h;
+      if(ov.isHook){
+        const elapsed = t - ov.start;
+        if(elapsed < 0.4){ size *= 1 + (0.35 * (1 - elapsed/0.4)); }
+      }
+      ctx.save();
+      ctx.font = `${f.weight} ${size}px ${f.family}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = size * 0.12;
+      ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+      ctx.fillStyle = ov.color;
+      const x = (ov.xPct/100)*w, y = (ov.yPct/100)*h;
+      ctx.strokeText(ov.text, x, y);
+      ctx.fillText(ov.text, x, y);
+      ctx.restore();
+    });
+  });
+
+  document.addEventListener('nokta:fileloaded', () => {
+    overlays = [];
+    overlayLayer.innerHTML = '';
+    renderList();
+  });
+
+  // ---------- Public API for other modules (e.g. viral.js "add hook here") ----------
+  N.insertHookAt = (time, text) => {
+    const ov = {
+      id: idSeq++, text: text || 'MOMEN INI VIRAL!', xPct:50, yPct:22,
+      fontKey: selectedFontKey, color: selectedColor, sizeRatio:0.09,
+      start: time, end: Math.min(time + 2.5, N.duration || time + 2.5), isHook:true
+    };
+    overlays.push(ov);
+    renderOverlayDom(ov, true);
+    renderList();
+  };
+})();
+
+</script>
+<script>
+(() => {
+  const N = window.NOKTA;
+  const btnAnalyze = document.getElementById('btnAnalyze');
+  const viralProgress = document.getElementById('viralProgress');
+  const viralFill = document.getElementById('viralFill');
+  const viralPct = document.getElementById('viralPct');
+  const viralStage = document.getElementById('viralStage');
+  const viralList = document.getElementById('viralList');
+  const viralMarkers = document.getElementById('viralMarkers');
+
+  const KEYWORDS = [
+    'ternyata','gila','rahasia','jangan','viral','gokil','parah','nyesel','wajib',
+    'bongkar','terbongkar','gratis','kenapa','kok bisa','gaskan','auto','banget',
+    'segini','cuma','hati-hati','waspada','bahaya','trik','tips','gampang','mudah',
+    'murah','modal','untung','nangis','ketawa','shock','kaget'
+  ];
+
+  function keywordScore(text){
+    if(!text) return 0;
+    const lower = text.toLowerCase();
+    let score = 0;
+    KEYWORDS.forEach(k => { if(lower.includes(k)) score++; });
+    if(/[!?]/.test(text)) score += 1;
+    if(/\d/.test(text)) score += 0.5;
+    return score;
+  }
+
+  function normalize(arr){
+    const max = Math.max(...arr, 0.0001);
+    return arr.map(v => v/max);
+  }
+
+  async function seekTo(video, t){
+    return new Promise(res => {
+      const onSeeked = () => { video.removeEventListener('seeked', onSeeked); res(); };
+      video.addEventListener('seeked', onSeeked);
+      video.currentTime = t;
+    });
+  }
+
+  function frameDiff(a, b){
+    let sum = 0;
+    for(let i=0;i<a.length;i+=4){
+      sum += Math.abs(a[i]-b[i]) + Math.abs(a[i+1]-b[i+1]) + Math.abs(a[i+2]-b[i+2]);
+    }
+    return sum;
+  }
+
+  async function analyze(){
+    const video = N.getVideoEl();
+    if(!video.src || !N.duration){ return; }
+    btnAnalyze.disabled = true;
+    viralProgress.classList.add('active');
+    const wasPlaying = !video.paused;
+    video.pause();
+
+    const duration = N.duration;
+    const nSamples = Math.min(50, Math.max(10, Math.floor(duration)));
+    const times = [];
+    for(let i=0;i<nSamples;i++) times.push((duration/nSamples) * i + (duration/nSamples)/2);
+
+    // --- Audio energy ---
+    viralStage.textContent = 'Menghitung energi audio…';
+    const audioScores = times.map(() => 0);
+    if(N.audioBuffer){
+      const raw = N.audioBuffer.getChannelData(0);
+      const sr = N.audioBuffer.sampleRate;
+      times.forEach((t, i) => {
+        const startIdx = Math.max(0, Math.floor((t-0.4)*sr));
+        const endIdx = Math.min(raw.length, Math.floor((t+0.4)*sr));
+        let sumSq = 0, count = 0;
+        for(let j=startIdx; j<endIdx; j+=8){ sumSq += raw[j]*raw[j]; count++; }
+        audioScores[i] = count ? Math.sqrt(sumSq/count) : 0;
+      });
+    }
+    viralFill.style.width='25%'; viralPct.textContent='25%';
+
+    // --- Visual motion ---
+    viralStage.textContent = 'Menganalisis gerakan visual…';
+    const sw = 32, sh = 18;
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = sw; tmpCanvas.height = sh;
+    const tctx = tmpCanvas.getContext('2d', {willReadFrequently:true});
+    const motionScores = times.map(()=>0);
+    let prevFrame = null;
+    for(let i=0;i<times.length;i++){
+      await seekTo(video, times[i]);
+      tctx.drawImage(video, 0, 0, sw, sh);
+      const frame = tctx.getImageData(0,0,sw,sh).data;
+      if(prevFrame) motionScores[i] = frameDiff(frame, prevFrame);
+      prevFrame = frame;
+      const pct = 25 + Math.round(((i+1)/times.length)*50);
+      viralFill.style.width = pct+'%'; viralPct.textContent = pct+'%';
+    }
+
+    // --- Keyword score (from subtitle segments, if any) ---
+    viralStage.textContent = 'Mencocokkan kata kunci…';
+    const hasSubtitles = N.subtitleSegments && N.subtitleSegments.length > 0;
+    const kwScores = times.map(t => {
+      if(!hasSubtitles) return 0;
+      const seg = N.subtitleSegments.find(s => t>=s.start && t<=s.end);
+      return seg ? keywordScore(seg.text) : 0;
+    });
+    viralFill.style.width='85%'; viralPct.textContent='85%';
+
+    // --- Combine ---
+    const aNorm = normalize(audioScores);
+    const mNorm = normalize(motionScores);
+    const kNorm = normalize(kwScores);
+    const wA = hasSubtitles ? 0.4 : 0.55;
+    const wM = hasSubtitles ? 0.3 : 0.45;
+    const wK = hasSubtitles ? 0.3 : 0;
+    const totals = times.map((t,i) => ({
+      time: t, score: aNorm[i]*wA + mNorm[i]*wM + kNorm[i]*wK
+    }));
+
+    // --- Pick top peaks with min spacing ---
+    const sorted = [...totals].sort((a,b)=>b.score-a.score);
+    const picked = [];
+    const minSpacing = Math.max(2, duration*0.05);
+    for(const cand of sorted){
+      if(picked.length >= 6) break;
+      if(picked.every(p => Math.abs(p.time-cand.time) >= minSpacing)) picked.push(cand);
+    }
+    picked.sort((a,b)=>a.time-b.time);
+
+    viralFill.style.width='100%'; viralPct.textContent='100%';
+    setTimeout(() => { viralProgress.classList.remove('active'); btnAnalyze.disabled=false; }, 400);
+
+    renderMarkers(picked, duration);
+    renderList(picked, hasSubtitles);
+
+    video.currentTime = 0;
+    if(wasPlaying) video.play();
+  }
+
+  function renderMarkers(picked, duration){
+    viralMarkers.innerHTML = '';
+    picked.forEach(p => {
+      const tick = document.createElement('div');
+      tick.className = 'viral-tick';
+      tick.style.left = (p.time/duration*100) + '%';
+      viralMarkers.appendChild(tick);
+    });
+  }
+
+  function renderList(picked, hasSubtitles){
+    viralList.innerHTML = '';
+    if(picked.length===0){
+      viralList.innerHTML = '<div class="empty-note">Tidak ada momen menonjol terdeteksi.</div>';
+      return;
+    }
+    const note = document.createElement('div');
+    note.className = 'hint';
+    note.style.marginBottom = '6px';
+    note.textContent = hasSubtitles
+      ? 'Skor mencakup audio + gerakan + kata kunci subtitle.'
+      : 'Skor berbasis audio + gerakan saja. Isi subtitle dulu untuk skor yang mempertimbangkan konten ucapan.';
+    viralList.appendChild(note);
+
+    picked.forEach((p, idx) => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      const pctScore = Math.round(p.score*100);
+      row.innerHTML = `
+        <div class="li-main">
+          <div class="li-title">Momen #${idx+1} — ${N.fmtShort(p.time)}</div>
+          <div class="li-sub">Skor relatif: ${pctScore}%</div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:${pctScore}%"></div></div>
+        </div>
+        <div class="li-actions">
+          <button data-act="jump" title="Loncat ke momen">⏵</button>
+          <button data-act="hook" title="Tambah hook di sini">⚡</button>
+        </div>
+      `;
+      row.querySelector('[data-act="jump"]').addEventListener('click', () => {
+        N.getVideoEl().currentTime = p.time;
+      });
+      row.querySelector('[data-act="hook"]').addEventListener('click', () => {
+        N.insertHookAt(p.time);
+        if(N.switchTab) N.switchTab('text');
+      });
+      viralList.appendChild(row);
+    });
+  }
+
+  btnAnalyze.addEventListener('click', analyze);
+
+  document.addEventListener('nokta:fileloaded', () => {
+    viralMarkers.innerHTML = '';
+    viralList.innerHTML = '<div class="empty-note">Jalankan analisis untuk melihat momen menarik.</div>';
+  });
+})();
+
+</script>
+<script>
+(() => {
+  const N = window.NOKTA;
+  const btnAutoTiming = document.getElementById('btnAutoTiming');
+  const btnVoiceRec = document.getElementById('btnVoiceRec');
+  const voiceStatus = document.getElementById('voiceStatus');
+  const subtitleList = document.getElementById('subtitleList');
+  const overlayLayer = document.getElementById('overlayLayer');
+
+  N.subtitleSegments = [];
+  let idSeq = 1;
+  let activeSegmentId = null;
+
+  // preview DOM element for burned-in-looking subtitle while scrubbing/playing
+  const previewEl = document.createElement('div');
+  previewEl.className = 'subtitle-overlay';
+  previewEl.style.display = 'none';
+  overlayLayer.appendChild(previewEl);
+
+  function detectSpeechSegments(audioBuffer){
+    const raw = audioBuffer.getChannelData(0);
+    const sr = audioBuffer.sampleRate;
+    const winSize = Math.floor(sr*0.05);
+    const numWin = Math.floor(raw.length/winSize);
+    const energies = [];
+    for(let i=0;i<numWin;i++){
+      let sum=0, n=0;
+      for(let j=0;j<winSize;j+=4){ const v=raw[i*winSize+j]; sum+=v*v; n++; }
+      energies.push(n ? Math.sqrt(sum/n) : 0);
+    }
+    const maxE = Math.max(...energies, 0.0001);
+    const threshold = maxE * 0.08;
+    const isSpeech = energies.map(e => e > threshold);
+
+    const raw_segs = [];
+    let start = null;
+    for(let i=0;i<isSpeech.length;i++){
+      if(isSpeech[i] && start===null) start = i;
+      if(!isSpeech[i] && start!==null){ raw_segs.push([start, i-1]); start = null; }
+    }
+    if(start!==null) raw_segs.push([start, isSpeech.length-1]);
+
+    let secSegs = raw_segs.map(([s,e]) => ({start: s*0.05, end: (e+1)*0.05}));
+    const merged = [];
+    secSegs.forEach(seg => {
+      if(merged.length && seg.start - merged[merged.length-1].end < 0.35){
+        merged[merged.length-1].end = seg.end;
+      } else merged.push({...seg});
+    });
+    return merged.filter(s => s.end - s.start >= 0.3);
+  }
+
+  btnAutoTiming.addEventListener('click', () => {
+    if(!N.audioBuffer){
+      alert('Audio belum siap dianalisis. Pastikan video memiliki audio dan tunggu sebentar setelah impor.');
+      return;
+    }
+    const segs = detectSpeechSegments(N.audioBuffer);
+    N.subtitleSegments = segs.map(s => ({ id: idSeq++, start: s.start, end: s.end, text: '' }));
+    renderList();
+  });
+
+  function renderList(){
+    subtitleList.innerHTML = '';
+    if(N.subtitleSegments.length===0){
+      subtitleList.innerHTML = '<div class="empty-note">Belum ada segmen. Jalankan auto-timing dulu.</div>';
+      return;
+    }
+    N.subtitleSegments.forEach(seg => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      row.innerHTML = `
+        <div class="li-main">
+          <div class="li-sub">${N.fmtShort(seg.start)}–${N.fmtShort(seg.end)}</div>
+          <input type="text" placeholder="Isi teks subtitle…" value="${(seg.text||'').replace(/"/g,'&quot;')}" />
+        </div>
+        <div class="li-actions">
+          <button data-act="jump" title="Loncat ke sini">⏵</button>
+          <button data-act="del" class="danger" title="Hapus">✕</button>
+        </div>
+      `;
+      const input = row.querySelector('input');
+      input.addEventListener('input', e => { seg.text = e.target.value; });
+      input.addEventListener('focus', () => { activeSegmentId = seg.id; });
+      row.querySelector('[data-act="jump"]').addEventListener('click', () => { N.getVideoEl().currentTime = seg.start; });
+      row.querySelector('[data-act="del"]').addEventListener('click', () => {
+        N.subtitleSegments = N.subtitleSegments.filter(s => s.id !== seg.id);
+        renderList();
+      });
+      subtitleList.appendChild(row);
+    });
+  }
+
+  // ---------- Preview sync ----------
+  N.timeUpdateHooks.push((t) => {
+    const seg = N.subtitleSegments.find(s => t>=s.start && t<=s.end && s.text);
+    if(seg){ previewEl.textContent = seg.text; previewEl.style.display = 'block'; }
+    else { previewEl.style.display = 'none'; }
+  });
+
+  // ---------- Burn-in for export ----------
+  N.subtitleRenderers.push((ctx, w, h, t) => {
+    const seg = N.subtitleSegments.find(s => t>=s.start && t<=s.end && s.text);
+    if(!seg) return;
+    const fontSize = Math.round(h*0.045);
+    ctx.save();
+    ctx.font = `800 ${fontSize}px 'Poppins', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const x = w/2, y = h*0.9;
+    const paddingX = fontSize*0.7, paddingY = fontSize*0.45;
+    const textWidth = ctx.measureText(seg.text).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(x-textWidth/2-paddingX, y-fontSize/2-paddingY, textWidth+paddingX*2, fontSize+paddingY*2);
+    ctx.lineWidth = fontSize*0.1;
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeText(seg.text, x, y);
+    ctx.fillText(seg.text, x, y);
+    ctx.restore();
+  });
+
+  // ---------- Experimental mic voice recognition ----------
+  let recognition = null;
+  let listening = false;
+
+  btnVoiceRec.addEventListener('click', () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){
+      voiceStatus.style.display = 'block';
+      voiceStatus.textContent = 'Browser ini tidak mendukung pengenalan suara (coba Chrome Android).';
+      return;
+    }
+    if(listening){
+      recognition.stop();
+      return;
+    }
+    recognition = new SR();
+    recognition.lang = 'id-ID';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    voiceStatus.style.display = 'block';
+    voiceStatus.textContent = '🎙 Mendengarkan… putar audio lewat speaker dekat mic. Fokus ke salah satu kolom teks segmen agar hasil masuk ke sana.';
+
+    recognition.onresult = (e) => {
+      let finalText = '';
+      for(let i=e.resultIndex; i<e.results.length; i++){
+        if(e.results[i].isFinal) finalText += e.results[i][0].transcript;
+      }
+      if(finalText && activeSegmentId){
+        const seg = N.subtitleSegments.find(s => s.id === activeSegmentId);
+        if(seg){
+          seg.text = (seg.text ? seg.text + ' ' : '') + finalText.trim();
+          renderList();
+        }
+      }
+    };
+    recognition.onerror = (e) => {
+      voiceStatus.textContent = 'Pengenalan suara berhenti: ' + e.error;
+      listening = false; btnVoiceRec.textContent = '🎙 COBA PENGENALAN SUARA (EKSPERIMENTAL)';
+    };
+    recognition.onend = () => {
+      listening = false;
+      btnVoiceRec.textContent = '🎙 COBA PENGENALAN SUARA (EKSPERIMENTAL)';
+      voiceStatus.textContent += ' (berhenti)';
+    };
+    recognition.start();
+    listening = true;
+    btnVoiceRec.textContent = '⏹ HENTIKAN PENGENALAN SUARA';
+  });
+
+  document.addEventListener('nokta:fileloaded', () => {
+    N.subtitleSegments = [];
+    renderList();
+    voiceStatus.style.display = 'none';
+  });
+})();
+
+</script>
+<script>
+(() => {
+  const N = window.NOKTA;
+  const btnGrabFrames = document.getElementById('btnGrabFrames');
+  const frameGrid = document.getElementById('frameGrid');
+  const thumbEditor = document.getElementById('thumbEditor');
+  const thumbCanvas = document.getElementById('thumbCanvas');
+  const thumbRatios = document.getElementById('thumbRatios');
+  const btnThumbAddText = document.getElementById('btnThumbAddText');
+  const btnThumbExport = document.getElementById('btnThumbExport');
+  const briSlider = document.getElementById('briSlider');
+  const conSlider = document.getElementById('conSlider');
+  const briVal = document.getElementById('briVal');
+  const conVal = document.getElementById('conVal');
+
+  const ctx = thumbCanvas.getContext('2d');
+  let baseImage = null, baseW = 0, baseH = 0;
+  let currentRatio = 'orig';
+  let bri = 100, con = 100;
+  let thumbTexts = []; // {text, xPct, yPct}
+  let dragIdx = null;
+
+  async function seekTo(video, t){
+    return new Promise(res => {
+      const onSeeked = () => { video.removeEventListener('seeked', onSeeked); res(); };
+      video.addEventListener('seeked', onSeeked);
+      video.currentTime = t;
+    });
+  }
+
+  btnGrabFrames.addEventListener('click', async () => {
+    const video = N.getVideoEl();
+    if(!video.src || !N.duration) return;
+    frameGrid.innerHTML = '';
+    thumbEditor.hidden = true;
+    const wasPlaying = !video.paused; video.pause();
+    const start = N.inPoint, end = N.outPoint > N.inPoint ? N.outPoint : N.duration;
+    const n = 8;
+    const gridCanvas = document.createElement('canvas');
+    gridCanvas.width = 160; gridCanvas.height = 90;
+    const gctx = gridCanvas.getContext('2d');
+    for(let i=0;i<n;i++){
+      const t = start + (end-start) * ((i+0.5)/n);
+      await seekTo(video, t);
+      gctx.drawImage(video, 0, 0, 160, 90);
+      const url = gridCanvas.toDataURL('image/jpeg', 0.72);
+      const img = document.createElement('img');
+      img.src = url;
+      img.addEventListener('click', () => selectFrame(t, img));
+      frameGrid.appendChild(img);
+    }
+    if(wasPlaying) video.play();
+  });
+
+  async function selectFrame(t, imgEl){
+    frameGrid.querySelectorAll('img').forEach(i => i.classList.remove('selected'));
+    imgEl.classList.add('selected');
+    const video = N.getVideoEl();
+    await seekTo(video, t);
+    baseW = video.videoWidth; baseH = video.videoHeight;
+    const cap = document.createElement('canvas');
+    cap.width = baseW; cap.height = baseH;
+    cap.getContext('2d').drawImage(video, 0, 0);
+    baseImage = new Image();
+    baseImage.onload = () => { thumbTexts = []; redraw(); };
+    baseImage.src = cap.toDataURL('image/png');
+    thumbEditor.hidden = false;
+  }
+
+  function ratioValue(key){
+    if(key==='orig') return baseW/baseH;
+    const [w,h] = key.split(':').map(Number);
+    return w/h;
+  }
+
+  function redraw(){
+    if(!baseImage) return;
+    const rv = ratioValue(currentRatio);
+    const srcRatio = baseW/baseH;
+    let cropW, cropH, cropX, cropY;
+    if(rv < srcRatio){ cropH = baseH; cropW = baseH*rv; cropX = (baseW-cropW)/2; cropY = 0; }
+    else { cropW = baseW; cropH = baseW/rv; cropX = 0; cropY = (baseH-cropH)/2; }
+    const outW = Math.min(1080, cropW);
+    const outH = outW/rv;
+    thumbCanvas.width = outW; thumbCanvas.height = outH;
+
+    ctx.filter = `brightness(${bri}%) contrast(${con}%)`;
+    ctx.drawImage(baseImage, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+    ctx.filter = 'none';
+
+    thumbTexts.forEach(tx => {
+      const size = outH*0.09;
+      ctx.font = `400 ${size}px 'Anton', sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline='middle';
+      ctx.lineWidth = size*0.14; ctx.strokeStyle='rgba(0,0,0,0.8)';
+      ctx.fillStyle = '#ffffff';
+      const x = (tx.xPct/100)*outW, y = (tx.yPct/100)*outH;
+      ctx.strokeText(tx.text, x, y);
+      ctx.fillText(tx.text, x, y);
+    });
+  }
+
+  thumbRatios.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      thumbRatios.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      currentRatio = chip.dataset.ratio;
+      redraw();
+    });
+  });
+
+  btnThumbAddText.addEventListener('click', () => {
+    const txt = prompt('Teks thumbnail:', 'JUDUL DI SINI');
+    if(txt && txt.trim()){
+      thumbTexts.push({text: txt.trim(), xPct:50, yPct:50});
+      redraw();
+    }
+  });
+
+  function canvasPointFromEvent(e){
+    const rect = thumbCanvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const xPct = ((clientX-rect.left)/rect.width)*100;
+    const yPct = ((clientY-rect.top)/rect.height)*100;
+    return {xPct, yPct};
+  }
+  thumbCanvas.addEventListener('pointerdown', e => {
+    const p = canvasPointFromEvent(e);
+    let closest = -1, closestDist = 15;
+    thumbTexts.forEach((tx,i) => {
+      const d = Math.hypot(tx.xPct-p.xPct, tx.yPct-p.yPct);
+      if(d < closestDist){ closestDist = d; closest = i; }
+    });
+    dragIdx = closest;
+  });
+  window.addEventListener('pointermove', e => {
+    if(dragIdx===null || dragIdx<0) return;
+    const p = canvasPointFromEvent(e);
+    thumbTexts[dragIdx].xPct = Math.min(100,Math.max(0,p.xPct));
+    thumbTexts[dragIdx].yPct = Math.min(100,Math.max(0,p.yPct));
+    redraw();
+  });
+  window.addEventListener('pointerup', () => dragIdx = null);
+
+  briSlider.addEventListener('input', e => { bri = e.target.value; briVal.textContent = bri+'%'; redraw(); });
+  conSlider.addEventListener('input', e => { con = e.target.value; conVal.textContent = con+'%'; redraw(); });
+
+  btnThumbExport.addEventListener('click', () => {
+    thumbCanvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const base = (N.currentFile ? N.currentFile.name.replace(/\.[^/.]+$/,'') : 'nokta').replace(/[^a-z0-9]+/gi,'_');
+      a.href = url; a.download = `${base}_thumbnail.png`;
+      document.body.appendChild(a); a.click(); a.remove();
+    }, 'image/png');
+  });
+
+  document.addEventListener('nokta:fileloaded', () => {
+    frameGrid.innerHTML = '';
+    thumbEditor.hidden = true;
+    baseImage = null; thumbTexts = [];
+  });
+})();
+
+</script>
+<script>
+(() => {
+  const N = window.NOKTA;
+  const navButtons = document.querySelectorAll('.nav-btn');
+  const panels = document.querySelectorAll('.panel');
+  const btnExport = document.getElementById('btnExport');
+  const btnInstall = document.getElementById('btnInstall');
+
+  function switchTab(name){
+    navButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    panels.forEach(p => p.hidden = p.dataset.panel !== name);
+  }
+  N.switchTab = switchTab;
+
+  navButtons.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+  document.addEventListener('nokta:metadata', () => {
+    btnExport.disabled = false;
+  });
+
+  // ---------- PWA install prompt ----------
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    btnInstall.hidden = false;
+  });
+  btnInstall.addEventListener('click', async () => {
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    btnInstall.hidden = true;
+  });
+  window.addEventListener('appinstalled', () => { btnInstall.hidden = true; });
+
+  // ---------- Service worker ----------
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW gagal daftar:', err));
+    });
+  }
+})();
+
+</script>
+</body>
+</html>
