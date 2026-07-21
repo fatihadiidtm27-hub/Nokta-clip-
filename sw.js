@@ -4,6 +4,7 @@ const ASSETS = [
   './index.html',
   './style.css',
   './core.js',
+  './auth-gate.js',
   './texttool.js',
   './viral.js',
   './subtitle.js',
