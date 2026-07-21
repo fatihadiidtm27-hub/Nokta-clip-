@@ -6,7 +6,7 @@
 // Contoh: kalau link produkmu https://gum.co/nokta-clip
 // maka permalinknya adalah: 'nokta-clip'
 // ============================================================
-const GUMROAD_PRODUCT_PERMALINK = 'GANTI_DENGAN_PERMALINK_PRODUK';
+const GUMROAD_PRODUCT_PERMALINK = 'mdnavp';
 
 (() => {
   const STORAGE_KEY = 'nokta_license_key';
