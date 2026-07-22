@@ -24,7 +24,7 @@
 // server (Cloudflare Worker) atau kembali ke Gumroad kalau nanti
 // sudah punya rekening bank/PayPal.
 // ============================================================
-const CODES_GIST_URL = 'https://gist.githubusercontent.com/fatihadiidtm27-hub/2308f5edfaa344139c5e528534e703ee/raw/daf0f611dae521872e0298d41e7254101f247642/codes.json';
+const CODES_GIST_URL = 'https://gist.githubusercontent.com/fatihadiidtm27-hub/2308f5edfaa344139c5e528534e703ee/raw/codes.json';
 
 (() => {
   const STORAGE_KEY = 'nokta_license_key';
